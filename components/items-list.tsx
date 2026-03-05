@@ -134,7 +134,7 @@ export function ItemsList() {
 
   return (
     <div>
-      <div className="relative mb-6 max-w-sm">
+      <div className="relative mb-6 max-w-sm ml-auto">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
         <Input
           placeholder="Search components..."
