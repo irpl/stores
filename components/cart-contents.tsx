@@ -1,5 +1,5 @@
 "use client"
-import { Trash2, ArrowRight } from "lucide-react"
+import { Trash2, ArrowRight, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useCart } from "@/components/cart-provider"
@@ -30,7 +30,7 @@ export function CartContents() {
   if (items.length === 0) {
     return (
       <div className="text-center py-10">
-        <CircuitBoard className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+        <ShoppingCart className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
         <h3 className="text-lg font-medium">Your cart is empty</h3>
         <p className="text-muted-foreground mt-2 mb-6">Add some items to your cart to get started.</p>
         <Button asChild>
