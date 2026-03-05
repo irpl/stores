@@ -1,19 +1,18 @@
 import type React from "react"
 import "./globals.css"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import Link from "next/link"
+import { Geist } from "next/font/google"
 import { CartButton } from "@/components/cart-button"
 import { CartProvider } from "@/components/cart-provider"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/toaster"
 
-const inter = Inter({ subsets: ["latin"] })
+const geist = Geist({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Electronic Circuit Components",
+  title: "Electronic Components",
   description: "Shop for electronic circuit components",
-    generator: 'v0.app'
+  generator: "v0.app",
 }
 
 export default function RootLayout({
@@ -23,23 +22,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={geist.className}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
           <CartProvider>
             <div className="flex min-h-screen flex-col">
-              <header className="sticky top-0 z-10 border-b bg-background">
-                <div className="container mx-auto flex h-16 items-center justify-between px-4">
-                  <Link href="/" className="text-xl font-bold">
-                    CircuitShop
-                  </Link>
-                  <CartButton />
-                </div>
-              </header>
+              <div className="fixed top-4 right-4 z-50">
+                <CartButton />
+              </div>
               <main className="flex-1">{children}</main>
-              <footer className="border-t py-6 md:py-0">
-                <div className="container mx-auto flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
-                  <p className="text-sm text-muted-foreground">
-                    &copy; {new Date().getFullYear()} CircuitShop. All rights reserved.
+              <footer className="border-t">
+                <div className="container mx-auto flex h-12 items-center px-4">
+                  <p className="text-xs text-muted-foreground">
+                    &copy; {new Date().getFullYear()}
                   </p>
                 </div>
               </footer>

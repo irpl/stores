@@ -182,17 +182,19 @@ export function CheckoutForm() {
 
   if (isSubmitted) {
     return (
-      <div className="max-w-md mx-auto text-center py-10">
-        <div className="rounded-full bg-green-100 p-3 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-          <CheckCircle className="h-8 w-8 text-green-600" />
-        </div>
-        <h2 className="text-2xl font-bold mb-2">Request Submitted!</h2>
-        <p className="text-muted-foreground mb-2">
-          Thank you for your request. We will contact you shortly to confirm your order.
+      <div className="max-w-sm mx-auto text-center py-16">
+        <CheckCircle className="h-10 w-10 text-foreground mx-auto mb-5" />
+        <h2 className="text-xl font-semibold tracking-tight mb-2">Request submitted</h2>
+        <p className="text-sm text-muted-foreground mb-3">
+          We'll be in touch shortly to confirm your order.
         </p>
-        {invoiceId && <p className="font-medium mb-6">Invoice ID: {invoiceId}</p>}
-        <Button asChild>
-          <Link href="/">Continue Shopping</Link>
+        {invoiceId && (
+          <p className="text-xs text-muted-foreground mb-6 font-mono">
+            Invoice: {invoiceId}
+          </p>
+        )}
+        <Button variant="outline" size="sm" asChild>
+          <Link href="/">Continue shopping</Link>
         </Button>
       </div>
     )
@@ -271,11 +273,11 @@ export function CheckoutForm() {
         {!usingSavedInfo && (
           <form onSubmit={handleSubmit}>
             <Card>
-              <CardHeader>
-                <CardTitle>Contact Information</CardTitle>
-                <CardDescription>Please provide your contact details for this request.</CardDescription>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base">Contact Information</CardTitle>
+                <CardDescription className="text-xs">Please provide your contact details for this request.</CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-6">
+              <CardContent className="grid gap-5">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="firstName">First Name</Label>
@@ -353,9 +355,9 @@ export function CheckoutForm() {
         {usingSavedInfo && (
           <form onSubmit={handleSubmit} className="mt-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Order Notes</CardTitle>
-                <CardDescription>Add any additional information about your order</CardDescription>
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base">Order Notes</CardTitle>
+                <CardDescription className="text-xs">Add any additional information about your order</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-2">
@@ -386,13 +388,13 @@ export function CheckoutForm() {
       {/* Order Summary */}
       <div>
         <Card>
-          <CardHeader>
-            <CardTitle>Order Summary</CardTitle>
-            <CardDescription>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Order Summary</CardTitle>
+            <CardDescription className="text-xs">
               {totalItems} item{totalItems !== 1 ? "s" : ""} in your cart
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4">
+          <CardContent className="grid gap-3">
             <div className="max-h-[300px] overflow-auto">
               {items.map((item) => (
                 <div key={item.item_id} className="flex justify-between py-2">

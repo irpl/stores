@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useEffect, useState } from "react"
-import { CircuitBoard, Loader2, Plus, Minus } from "lucide-react"
+import { CircuitBoard, Loader2, Plus, Minus, Search, X } from "lucide-react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,6 +16,7 @@ export function ItemsList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [quantities, setQuantities] = useState<Record<string, number>>({})
+  const [search, setSearch] = useState("")
   const { addToCart } = useCart()
   const { toast } = useToast()
 
@@ -123,70 +124,104 @@ export function ItemsList() {
     )
   }
 
+  const filtered = search.trim()
+    ? items.filter(
+        (item) =>
+          item.name.toLowerCase().includes(search.toLowerCase()) ||
+          (item.description?.toLowerCase().includes(search.toLowerCase()))
+      )
+    : items
+
   return (
     <div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {items.map((item) => (
-          <Card key={item.item_id} className="flex flex-col">
-            <CardHeader>
-              <CardTitle>{item.name}</CardTitle>
-              <CardDescription>{item.description || "No description available"}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow">
-              <div className="aspect-square relative bg-muted rounded-md flex items-center justify-center mb-4">
-                <CircuitBoard className="h-16 w-16 text-muted-foreground" />
+      <div className="relative mb-6 max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+        <Input
+          placeholder="Search components..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-8 pr-8 h-9 text-sm"
+        />
+        {search && (
+          <button
+            onClick={() => setSearch("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+            <span className="sr-only">Clear search</span>
+          </button>
+        )}
+      </div>
+      {filtered.length === 0 && (
+        <p className="text-sm text-muted-foreground py-10 text-center">
+          No components match &ldquo;{search}&rdquo;
+        </p>
+      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filtered.map((item) => (
+          <Card key={item.item_id} className="flex flex-col transition-shadow hover:shadow-md">
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between gap-2">
+                <CardTitle className="text-base font-semibold leading-snug">{item.name}</CardTitle>
+                <span
+                  className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${
+                    item.status === "active"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {item.status === "active" ? "In Stock" : "Out of Stock"}
+                </span>
               </div>
-              <div className="flex justify-between items-center">
-                <div className="font-medium">
-                  Price: ${item.rate.toFixed(2)} {item.unit && `per ${item.unit}`}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {item.status === "active" ? (
-                    <span className="text-green-500">In Stock</span>
-                  ) : (
-                    <span className="text-red-500">Out of Stock</span>
-                  )}
-                </div>
+              <CardDescription className="line-clamp-2 text-xs">
+                {item.description || "No description available"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow pb-3">
+              <div className="text-xl font-bold tracking-tight">
+                ${item.rate.toFixed(2)}
+                {item.unit && (
+                  <span className="text-sm font-normal text-muted-foreground ml-1">/ {item.unit}</span>
+                )}
               </div>
             </CardContent>
-            <CardFooter className="flex flex-col gap-3">
-              <div className="flex items-center w-full">
-                <Label htmlFor={`quantity-${item.item_id}`} className="mr-2">
-                  Qty:
-                </Label>
-                <div className="flex items-center border rounded-md">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-r-none"
-                    onClick={() => decrementQuantity(item.item_id)}
-                    disabled={quantities[item.item_id] <= 1}
-                  >
-                    <Minus className="h-3 w-3" />
-                    <span className="sr-only">Decrease quantity</span>
-                  </Button>
-                  <Input
-                    id={`quantity-${item.item_id}`}
-                    type="number"
-                    min="1"
-                    className="w-12 h-8 text-center border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                    value={quantities[item.item_id] || 1}
-                    onChange={(e) => handleQuantityChange(item.item_id, Number.parseInt(e.target.value) || 1)}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-l-none"
-                    onClick={() => incrementQuantity(item.item_id)}
-                  >
-                    <Plus className="h-3 w-3" />
-                    <span className="sr-only">Increase quantity</span>
-                  </Button>
-                </div>
+            <CardFooter className="flex items-center gap-2 pt-0">
+              <div className="flex items-center border rounded-md shrink-0">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-r-none"
+                  onClick={() => decrementQuantity(item.item_id)}
+                  disabled={quantities[item.item_id] <= 1}
+                >
+                  <Minus className="h-3 w-3" />
+                  <span className="sr-only">Decrease quantity</span>
+                </Button>
+                <Input
+                  id={`quantity-${item.item_id}`}
+                  type="number"
+                  min="1"
+                  className="w-10 h-8 text-center border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm"
+                  value={quantities[item.item_id] || 1}
+                  onChange={(e) => handleQuantityChange(item.item_id, Number.parseInt(e.target.value) || 1)}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-l-none"
+                  onClick={() => incrementQuantity(item.item_id)}
+                >
+                  <Plus className="h-3 w-3" />
+                  <span className="sr-only">Increase quantity</span>
+                </Button>
               </div>
-              <Button className="w-full" onClick={() => handleAddToCart(item)} disabled={item.status !== "active"}>
+              <Button
+                className="flex-1 h-8 text-sm"
+                onClick={() => handleAddToCart(item)}
+                disabled={item.status !== "active"}
+              >
                 Add to Cart
               </Button>
             </CardFooter>

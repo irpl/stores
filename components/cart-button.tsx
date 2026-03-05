@@ -9,14 +9,12 @@ export function CartButton() {
   const { totalItems } = useCart()
 
   return (
-    <Button variant="outline" size="icon" asChild className="relative">
+    <Button variant="outline" size="sm" asChild className="gap-2 h-8 px-3 bg-background/80 backdrop-blur-sm shadow-sm">
       <Link href="/cart">
-        <ShoppingCart className="h-5 w-5" />
-        {totalItems > 0 && (
-          <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-            {totalItems}
-          </span>
-        )}
+        <ShoppingCart className="h-4 w-4" />
+        {totalItems > 0 ? (
+          <span className="text-xs font-medium tabular-nums">{totalItems}</span>
+        ) : null}
         <span className="sr-only">View cart</span>
       </Link>
     </Button>
