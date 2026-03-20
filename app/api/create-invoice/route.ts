@@ -1,28 +1,48 @@
 import { NextResponse } from "next/server"
+import {
+  findCustomerByEmail,
+  createCustomer,
+  getItemRatesByIds,
+  createInvoice,
+  type CustomerInfo,
+} from "@/lib/zoho"
+import { sendInvoiceNotification } from "@/lib/telegram"
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    console.log("Request body:", body)
+    const { customer_info, items, notes } = body as {
+      customer_info: CustomerInfo
+      items: { item_id: string; quantity: number }[]
+      notes?: string
+    }
 
-    // In production, this would send the request to the actual API
-    const response = await fetch("https://zoho-invoice-api.onrender.com/api/v1/create-invoice", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    })
+    // Find or create customer
+    let customerId = await findCustomerByEmail(customer_info.email)
+    if (!customerId) {
+      customerId = await createCustomer(customer_info)
+    }
 
-    // If the API is not available, simulate a successful response
-    const data = await response.json()
-    // return NextResponse.json(data)
+    // Fetch item rates and build line items
+    const itemRates = await getItemRatesByIds(items.map((i) => i.item_id))
+    const rateMap = new Map(itemRates.map((r) => [r.item_id, r.rate]))
 
-    // For development, return a mock success response
+    const lineItems = items.map((item) => ({
+      item_id: item.item_id,
+      quantity: item.quantity,
+      rate: rateMap.get(item.item_id)!,
+    }))
+
+    // Create invoice
+    const invoice = await createInvoice(customerId, lineItems, notes)
+
+    // Send Telegram notification (non-blocking)
+    sendInvoiceNotification(invoice, customer_info)
+
     return NextResponse.json({
       success: true,
       message: "Invoice created successfully",
-      invoice_id: data.invoice.invoice_number,
+      invoice_id: invoice.invoice_number,
     })
   } catch (error) {
     console.error("Error creating invoice:", error)
