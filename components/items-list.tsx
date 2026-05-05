@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useEffect, useState } from "react"
-import { CircuitBoard, Loader2, Plus, Minus, Search, X } from "lucide-react"
+import { CircuitBoard, ImageIcon, Loader2, Plus, Minus, Search, X } from "lucide-react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,6 +17,7 @@ export function ItemsList() {
   const [error, setError] = useState<string | null>(null)
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [search, setSearch] = useState("")
+  const [imageMap, setImageMap] = useState<Record<string, { url: string; scale: number; posX: number; posY: number }>>({})
   const { addToCart } = useCart()
   const { toast } = useToast()
 
@@ -25,13 +26,22 @@ export function ItemsList() {
     const fetchItems = async () => {
       try {
         setLoading(true)
-        const response = await fetch("/api/items")
+        const [response, imagesResponse] = await Promise.all([
+          fetch("/api/items"),
+          fetch("/api/images"),
+        ])
 
         if (!response.ok) {
           throw new Error(`Error fetching items: ${response.status}`)
         }
 
         const data = await response.json()
+
+        // Load image map
+        if (imagesResponse.ok) {
+          const imagesData = await imagesResponse.json()
+          setImageMap(imagesData || {})
+        }
 
         // Check if data.items exists before setting state
         if (data && Array.isArray(data.items)) {
@@ -177,6 +187,29 @@ export function ItemsList() {
                 {item.description || "No description available"}
               </CardDescription>
             </CardHeader>
+            {imageMap[item.item_id]?.url ? (
+              <div className="px-6 pb-3">
+                <div className="aspect-video rounded-md border bg-muted overflow-hidden">
+                  <img
+                    src={imageMap[item.item_id].url}
+                    alt={item.name}
+                    className="w-full h-full"
+                    style={{
+                      objectFit: "cover",
+                      objectPosition: `${imageMap[item.item_id].posX}% ${imageMap[item.item_id].posY}%`,
+                      transform: `scale(${imageMap[item.item_id].scale})`,
+                      transformOrigin: `${imageMap[item.item_id].posX}% ${imageMap[item.item_id].posY}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="px-6 pb-3">
+                <div className="aspect-video rounded-md border bg-muted flex items-center justify-center">
+                  <ImageIcon className="h-8 w-8 text-muted-foreground/30" />
+                </div>
+              </div>
+            )}
             <CardContent className="flex-grow pb-3">
               <div className="text-xl font-bold tracking-tight">
                 ${item.rate.toFixed(2)}
