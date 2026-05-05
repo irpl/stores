@@ -1,14 +1,31 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Loader2, ImageIcon, Trash2, Save, Lock, LogOut } from "lucide-react"
+import { Loader2, ImageIcon, Trash2, Save, Lock, LogOut, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
+import { Slider } from "@/components/ui/slider"
 import type { Item } from "@/components/cart-provider"
 
-type ImageMap = Record<string, string>
+type ImageEntry = {
+  url: string
+  scale: number
+  posX: number
+  posY: number
+}
+
+type ImageMap = Record<string, ImageEntry>
+
+type DraftEntry = {
+  url: string
+  scale: number
+  posX: number
+  posY: number
+}
+
+const DEFAULT_DRAFT: DraftEntry = { url: "", scale: 1, posX: 50, posY: 50 }
 
 export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState(false)
@@ -18,7 +35,7 @@ export default function AdminPage() {
 
   const [items, setItems] = useState<Item[]>([])
   const [imageMap, setImageMap] = useState<ImageMap>({})
-  const [urlInputs, setUrlInputs] = useState<Record<string, string>>({})
+  const [drafts, setDrafts] = useState<Record<string, DraftEntry>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
 
@@ -74,17 +91,20 @@ export default function AdminPage() {
           fetch("/api/images"),
         ])
         const itemsData = await itemsRes.json()
-        const imagesData = await imagesRes.json()
+        const imagesData: ImageMap = await imagesRes.json()
 
         const itemsList = itemsData?.items || []
         setItems(itemsList)
         setImageMap(imagesData || {})
 
-        const inputs: Record<string, string> = {}
+        const initialDrafts: Record<string, DraftEntry> = {}
         itemsList.forEach((item: Item) => {
-          inputs[item.item_id] = imagesData[item.item_id] || ""
+          const existing = imagesData[item.item_id]
+          initialDrafts[item.item_id] = existing
+            ? { url: existing.url, scale: existing.scale, posX: existing.posX, posY: existing.posY }
+            : { ...DEFAULT_DRAFT }
         })
-        setUrlInputs(inputs)
+        setDrafts(initialDrafts)
       } catch (err) {
         console.error("Failed to load data:", err)
       } finally {
@@ -95,9 +115,42 @@ export default function AdminPage() {
     fetchData()
   }, [authenticated])
 
+  const updateDraft = (itemId: string, updates: Partial<DraftEntry>) => {
+    setDrafts((prev) => ({
+      ...prev,
+      [itemId]: { ...(prev[itemId] || DEFAULT_DRAFT), ...updates },
+    }))
+  }
+
+  const resetDraft = (itemId: string) => {
+    const existing = imageMap[itemId]
+    setDrafts((prev) => ({
+      ...prev,
+      [itemId]: existing
+        ? { url: existing.url, scale: existing.scale, posX: existing.posX, posY: existing.posY }
+        : { ...DEFAULT_DRAFT },
+    }))
+  }
+
+  const hasChanged = (itemId: string) => {
+    const draft = drafts[itemId]
+    const saved = imageMap[itemId]
+    if (!draft) return false
+    if (!saved) return !!draft.url
+    return (
+      draft.url !== saved.url ||
+      draft.scale !== saved.scale ||
+      draft.posX !== saved.posX ||
+      draft.posY !== saved.posY
+    )
+  }
+
   const handleSave = async (itemId: string) => {
     const storedPassword = sessionStorage.getItem("adminPassword")
     if (!storedPassword) return
+
+    const draft = drafts[itemId]
+    if (!draft) return
 
     setSaving(itemId)
     try {
@@ -109,7 +162,10 @@ export default function AdminPage() {
         },
         body: JSON.stringify({
           itemId,
-          url: urlInputs[itemId] || "",
+          url: draft.url || "",
+          scale: draft.scale,
+          posX: draft.posX,
+          posY: draft.posY,
         }),
       })
 
@@ -118,14 +174,13 @@ export default function AdminPage() {
         setImageMap(updatedMap)
       }
     } catch (err) {
-      console.error("Failed to save image URL:", err)
+      console.error("Failed to save:", err)
     } finally {
       setSaving(null)
     }
   }
 
   const handleRemove = async (itemId: string) => {
-    setUrlInputs((prev) => ({ ...prev, [itemId]: "" }))
     const storedPassword = sessionStorage.getItem("adminPassword")
     if (!storedPassword) return
 
@@ -143,9 +198,10 @@ export default function AdminPage() {
       if (res.ok) {
         const updatedMap = await res.json()
         setImageMap(updatedMap)
+        setDrafts((prev) => ({ ...prev, [itemId]: { ...DEFAULT_DRAFT } }))
       }
     } catch (err) {
-      console.error("Failed to remove image URL:", err)
+      console.error("Failed to remove:", err)
     } finally {
       setSaving(null)
     }
@@ -204,7 +260,7 @@ export default function AdminPage() {
           </p>
           <h1 className="text-2xl font-semibold tracking-tight">Item Images</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Set display image URLs for each item.
+            Set display image URLs and adjust how they appear.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={handleLogout}>
@@ -216,12 +272,12 @@ export default function AdminPage() {
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-10">No items found.</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {items.map((item) => {
-            const currentUrl = imageMap[item.item_id]
-            const inputUrl = urlInputs[item.item_id] || ""
-            const hasChanged = inputUrl !== (currentUrl || "")
+            const draft = drafts[item.item_id] || DEFAULT_DRAFT
+            const saved = imageMap[item.item_id]
             const isSaving = saving === item.item_id
+            const changed = hasChanged(item.item_id)
 
             return (
               <Card key={item.item_id} className="flex flex-col">
@@ -233,18 +289,29 @@ export default function AdminPage() {
                     ID: {item.item_id}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="flex-grow space-y-3">
-                  <div className="aspect-video rounded-md border bg-muted flex items-center justify-center overflow-hidden">
-                    {currentUrl ? (
+                <CardContent className="flex-grow space-y-4">
+                  {/* Live preview */}
+                  <div className="aspect-video rounded-md border bg-muted overflow-hidden">
+                    {draft.url ? (
                       <img
-                        src={currentUrl}
+                        src={draft.url}
                         alt={item.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full"
+                        style={{
+                          objectFit: "cover",
+                          objectPosition: `${draft.posX}% ${draft.posY}%`,
+                          transform: `scale(${draft.scale})`,
+                          transformOrigin: `${draft.posX}% ${draft.posY}%`,
+                        }}
                       />
                     ) : (
-                      <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                      <div className="w-full h-full flex items-center justify-center">
+                        <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                      </div>
                     )}
                   </div>
+
+                  {/* URL input */}
                   <div className="grid gap-1.5">
                     <Label htmlFor={`url-${item.item_id}`} className="text-xs">
                       Image URL
@@ -252,23 +319,66 @@ export default function AdminPage() {
                     <Input
                       id={`url-${item.item_id}`}
                       placeholder="https://example.com/image.jpg"
-                      value={inputUrl}
-                      onChange={(e) =>
-                        setUrlInputs((prev) => ({
-                          ...prev,
-                          [item.item_id]: e.target.value,
-                        }))
-                      }
+                      value={draft.url}
+                      onChange={(e) => updateDraft(item.item_id, { url: e.target.value })}
                       className="text-sm h-8"
                     />
                   </div>
+
+                  {/* Controls — only show when there's a URL */}
+                  {draft.url && (
+                    <div className="space-y-3 pt-1">
+                      <div className="grid gap-1.5">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs">Zoom</Label>
+                          <span className="text-xs text-muted-foreground tabular-nums">{draft.scale.toFixed(2)}×</span>
+                        </div>
+                        <Slider
+                          value={[draft.scale]}
+                          onValueChange={([v]) => updateDraft(item.item_id, { scale: v })}
+                          min={0.5}
+                          max={3}
+                          step={0.05}
+                          className="w-full"
+                        />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs">Pan X</Label>
+                          <span className="text-xs text-muted-foreground tabular-nums">{draft.posX}%</span>
+                        </div>
+                        <Slider
+                          value={[draft.posX]}
+                          onValueChange={([v]) => updateDraft(item.item_id, { posX: v })}
+                          min={0}
+                          max={100}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+                      <div className="grid gap-1.5">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs">Pan Y</Label>
+                          <span className="text-xs text-muted-foreground tabular-nums">{draft.posY}%</span>
+                        </div>
+                        <Slider
+                          value={[draft.posY]}
+                          onValueChange={([v]) => updateDraft(item.item_id, { posY: v })}
+                          min={0}
+                          max={100}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
                 <CardFooter className="gap-2 pt-0">
                   <Button
                     size="sm"
                     className="flex-1 h-8 text-sm"
                     onClick={() => handleSave(item.item_id)}
-                    disabled={!hasChanged || isSaving}
+                    disabled={!changed || isSaving}
                   >
                     {isSaving ? (
                       <Loader2 className="h-3 w-3 animate-spin mr-1" />
@@ -277,7 +387,18 @@ export default function AdminPage() {
                     )}
                     Save
                   </Button>
-                  {currentUrl && (
+                  {changed && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 text-sm"
+                      onClick={() => resetDraft(item.item_id)}
+                    >
+                      <RotateCcw className="h-3 w-3 mr-1" />
+                      Reset
+                    </Button>
+                  )}
+                  {saved && (
                     <Button
                       size="sm"
                       variant="outline"

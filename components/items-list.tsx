@@ -17,7 +17,7 @@ export function ItemsList() {
   const [error, setError] = useState<string | null>(null)
   const [quantities, setQuantities] = useState<Record<string, number>>({})
   const [search, setSearch] = useState("")
-  const [imageMap, setImageMap] = useState<Record<string, string>>({})
+  const [imageMap, setImageMap] = useState<Record<string, { url: string; scale: number; posX: number; posY: number }>>({})
   const { addToCart } = useCart()
   const { toast } = useToast()
 
@@ -187,13 +187,19 @@ export function ItemsList() {
                 {item.description || "No description available"}
               </CardDescription>
             </CardHeader>
-            {imageMap[item.item_id] ? (
+            {imageMap[item.item_id]?.url ? (
               <div className="px-6 pb-3">
                 <div className="aspect-video rounded-md border bg-muted overflow-hidden">
                   <img
-                    src={imageMap[item.item_id]}
+                    src={imageMap[item.item_id].url}
                     alt={item.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full"
+                    style={{
+                      objectFit: "cover",
+                      objectPosition: `${imageMap[item.item_id].posX}% ${imageMap[item.item_id].posY}%`,
+                      transform: `scale(${imageMap[item.item_id].scale})`,
+                      transformOrigin: `${imageMap[item.item_id].posX}% ${imageMap[item.item_id].posY}%`,
+                    }}
                   />
                 </div>
               </div>
